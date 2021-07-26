@@ -7,7 +7,9 @@ import (
 
 // 测试计算器
 func TestGetIntByStrHandler(t *testing.T) {
-	str := "3+2*2+13"
+	//str := "3+2*2+13"
+	//str := "3+5 / 2 "
+	str := "3/2 "
 	value := GetIntByStrHandler(str)
 	if value != 20 {
 		log.Println("err 计算失败")

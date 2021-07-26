@@ -4,6 +4,8 @@ import (
 	"ginserver/internal/handler"
 	"ginserver/internal/myerr"
 	"github.com/gin-gonic/gin"
+	"strconv"
+	"strings"
 )
 
 // ping
@@ -22,6 +24,18 @@ func GetIntByStr(c *gin.Context) {
 		myerr.ResponseErr(c, msg)
 		return
 	}
+	if strings.Contains(str, "//") || strings.Contains(str, "**") || strings.Contains(str, "++") || strings.Contains(str, "--") {
+		msg := "参数不正确"
+		myerr.ResponseErr(c, msg)
+		return
+	}
+	//
+	isOk := CheckStr(str)
+	if !isOk {
+		msg := "参数不正确"
+		myerr.ResponseErr(c, msg)
+		return
+	}
 	reData := handler.GetIntByStrHandler(str)
 	c.JSON(200, gin.H{
 		"code": 0,
@@ -29,4 +43,21 @@ func GetIntByStr(c *gin.Context) {
 		"data": reData,
 	})
 	return
+}
+
+// 校验字符串值合法性
+func CheckStr(str string) bool {
+	strArr := []rune(str)
+	lenStr := len(strArr)
+	for k := 0; k < lenStr; k++ {
+		strV := string(strArr[k])
+		if strV == "+" || strV == "-" || strV == "*" || strV == "/" {
+			continue
+		}
+		_, err := strconv.Atoi(strV)
+		if err != nil {
+			return false
+		}
+	}
+	return true
 }
