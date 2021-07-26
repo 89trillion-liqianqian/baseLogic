@@ -1,46 +1,40 @@
-package model
+package handler
 
 import (
+	"ginserver/internal/service"
 	"strconv"
 	"strings"
 )
 
 // 字符串计算器
-
-func GetIntByStr(str string) (reData int) {
-	if len(str) == 0 {
-		return
-	}
+func GetIntByStrHandler(str string) (reData int) {
 	// 字符串去除空格
 	str = strings.TrimSpace(str)
 	// 第一步，+ 拆分
 	sep := "+"
-	addStrArr := getSplitArr(str, sep)
+	addStrArr := service.GetSplitArr(str, sep)
 	//log.Println("--sArr",addStrArr)
 	addArr := make([]string, 0) // 相加
 	for j := range addStrArr {
 		addStr := strings.TrimSpace(addStrArr[j])
-		if isInt(addStr) {
+		if service.IsInt(addStr) {
 			addArr = append(addArr, addStr)
 		} else {
 			// 第二步处理，
-			//log.Println("--222",addStr)
 			costValue := getCost(addStr)
 			addArr = append(addArr, costValue)
 		}
 
 	}
 	// 数组元素相加
-	reData = getSum(addArr)
-	//log.Println("--end ",reData)
-
+	reData = service.GetSum(addArr)
 	return
 }
 
 // 第二步处理，第一位 减后几位
 func getCost(str string) (strValue string) {
 	sep := "-" //减号拆分
-	cStrArr := getSplitArr(str, sep)
+	cStrArr := service.GetSplitArr(str, sep)
 	//log.Println("--getCost",cStrArr)
 	costArr := make([]string, 0) // 相减元素
 	// 第一位元素
@@ -48,14 +42,14 @@ func getCost(str string) (strValue string) {
 	for j := range cStrArr {
 		costStr := strings.TrimSpace(cStrArr[j])
 		if j == 0 {
-			if isIntTwo(costStr) {
+			if service.IsIntTwo(costStr) {
 				oneValue = costStr
 			} else {
 				// 第三步处理,计算* /
 				oneValue = getTake(costStr)
 			}
 		} else {
-			if isIntTwo(costStr) {
+			if service.IsIntTwo(costStr) {
 				costArr = append(costArr, costStr)
 			} else {
 				// 第三步处理,计算* /
@@ -67,7 +61,7 @@ func getCost(str string) (strValue string) {
 	//  第一位减 数组和
 	//log.Println("---oneValue",oneValue)
 	oneValueInt, _ := strconv.Atoi(oneValue)
-	sumValue := getSum(costArr)
+	sumValue := service.GetSum(costArr)
 	strValueInt := oneValueInt - sumValue
 	strValue = strconv.Itoa(strValueInt)
 	return
@@ -77,16 +71,16 @@ func getCost(str string) (strValue string) {
 func getTake(str string) (strValue string) {
 	sArr := make([]string, 0) // 乘除 数组
 	sep := "*"                // *拆分
-	cStrArr := getSplitArr(str, sep)
+	cStrArr := service.GetSplitArr(str, sep)
 	//log.Println("--getTake",cStrArr)
 	for j := range cStrArr {
 		takeStr := strings.TrimSpace(cStrArr[j])
-		if isIntThree(takeStr) {
+		if service.IsIntThree(takeStr) {
 			sArr = append(sArr, takeStr)
 			sArr = append(sArr, "*")
 		} else {
 			sepEnd := "/" // *拆分
-			endStrArr := getSplitArr(takeStr, sepEnd)
+			endStrArr := service.GetSplitArr(takeStr, sepEnd)
 			for i := range endStrArr {
 				endStr := strings.TrimSpace(endStrArr[i])
 				sArr = append(sArr, endStr)
@@ -129,52 +123,4 @@ func getEnd(strArr []string) (strValue string) {
 	}
 	strValue = strconv.Itoa(reValue)
 	return
-}
-
-// 获取字符串数组和
-func getSum(strArr []string) (reValue int) {
-	for j := range strArr {
-		str := strArr[j]
-		strInt, _ := strconv.Atoi(str)
-		reValue += strInt
-	}
-	return
-}
-
-//
-
-func getSplitArr(str, sep string) (reData []string) {
-	reData = strings.Split(str, sep)
-
-	return
-}
-
-func isInt(str string) bool {
-	if strings.Contains(str, "-") {
-		return false
-	}
-	if strings.Contains(str, "*") {
-		return false
-	}
-	if strings.Contains(str, "/") {
-		return false
-	}
-	return true
-}
-
-func isIntTwo(str string) bool {
-	if strings.Contains(str, "*") {
-		return false
-	}
-	if strings.Contains(str, "/") {
-		return false
-	}
-	return true
-}
-
-func isIntThree(str string) bool {
-	if strings.Contains(str, "/") {
-		return false
-	}
-	return true
 }
