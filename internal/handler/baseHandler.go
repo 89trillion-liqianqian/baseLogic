@@ -108,7 +108,7 @@ func calculate(postfix string) int {
 			case "+":
 				stack.Push(strconv.Itoa(num1 + num2))
 			case "-":
-				stack.Push(strconv.Itoa(num1 - num2))
+				stack.Push(strconv.Itoa(num2 - num1))
 			case "*":
 				stack.Push(strconv.Itoa(num1 * num2))
 			case "/":
