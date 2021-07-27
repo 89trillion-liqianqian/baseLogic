@@ -1,97 +1,153 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"ginserver/internal/model"
 	"ginserver/internal/service"
+	"log"
 	"strconv"
 	"strings"
 	"unicode"
 )
 
 // 字符串计算器
-func GetIntByStrHandler(str string) (reData int) {
+func GetIntByStrHandler(str string) (reData int, err error) {
 	// 字符串去除空格
 	str = strings.TrimSpace(str)
 	// 中缀转后缀计算方式
+	//校验参数和返回字符数组
+	strArr, err := CheckAndGetStrArr(str)
+	if err != nil {
+		log.Println("-err GetIntByStrHandler", err)
+		return
+	}
 	// 获取后缀
-	postfix := infix2ToPostfix(str)
-	reData = calculate(postfix)
+	postfixArr := infix2ToPostfix(strArr)
+	// 计算后缀
+	reData = calculate(postfixArr)
 	//////方法二拆分
 	//reData =SplitFunc(str)
 	return
 }
 
+//校验参数和返回字符数组
+func CheckAndGetStrArr(str string) (reArr []string, err error) {
+	reArr = make([]string, 0)
+	//str = "10+2*36/2-2"
+	// 去除空格
+	str = strings.TrimSpace(str)
+	strArr := []rune(str)
+	lenStr := len(strArr)
+	for k := 0; k < lenStr; k++ {
+		strV := string(strArr[k])
+		if strV == "+" || strV == "-" || strV == "*" || strV == "/" {
+			reArr = append(reArr, strV)
+			continue
+		}
+		// 遇到数字拼接
+		if unicode.IsDigit(strArr[k]) {
+			j := k
+			digit := ""
+			for ; j < lenStr && unicode.IsDigit(strArr[j]); j++ {
+				digit += string(strArr[j])
+			}
+			if digit == "0" {
+				// 数值大于0
+				err = errors.New("包含非法字符:" + strV)
+				return
+			}
+			reArr = append(reArr, digit)
+			k = j - 1 // 更新下标
+			continue
+		}
+		if strV == " " {
+			reArr = append(reArr, strV)
+		} else {
+			// 非法字符
+			err = errors.New("包含非法字符:" + strV)
+			return
+		}
+	}
+	// 字符串内，数字间，运算符间空格校验
+	err = Check(reArr)
+	return
+}
+
+// 字符串内，数字间，运算符间空格校验
+func Check(strArr []string) (err error) {
+	count := 0
+	lenStr := len(strArr)
+	for k := range strArr {
+		strV := strArr[k]
+		if strV == "+" || strV == "-" || strV == "*" || strV == "/" {
+			// 运算符-1
+			count -= 1
+			if k == 0 || k == lenStr-1 {
+				// 首尾不能是运算符
+				err = errors.New("首尾不能是运算符")
+				return
+			}
+		} else if strV == " " {
+			continue
+		} else {
+			// 数组+1
+			count += 1
+		}
+		if count < 0 {
+			//字符串内，数字间，运算符间有空格
+			err = errors.New("字符串内，重复运算符运算符间" + strV)
+			return
+		} else if count > 1 {
+			//字符串内，数字间，运算符间有空格
+			err = errors.New("字符串内，数字间，运算符间有空格")
+			return
+		}
+	}
+	return
+}
+
 // 中缀表达式转后缀表达式
-func infix2ToPostfix(exp string) string {
+func infix2ToPostfix(expArr []string) []string {
 	stack := model.ItemStack{}
 	// 运算符标示
-	postfix := "" //表达式
-	expLen := len(exp)
+	postfixArr := make([]string, 0) //表达式
+	expLen := len(expArr)
 	// 遍历整个表达式
 	for i := 0; i < expLen; i++ {
-
-		char := string(exp[i])
-
-		switch char {
-		case " ":
-			continue
-		case "(":
-			// 左括号直接入栈
-			stack.Push("(")
-		case ")":
-			// 右括号则弹出元素直到遇到左括号
-			for !stack.IsEmpty() {
-				preChar := stack.Top()
-				if preChar == "(" {
-					stack.Pop() // 弹出 "("
-					break
-				}
-				postfix = postfix + "#" + preChar
-				stack.Pop()
-			}
-			// 数字则直接输出
-		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			j := i
-			digit := ""
-			for ; j < expLen && unicode.IsDigit(rune(exp[j])); j++ {
-				digit += string(exp[j])
-			}
-			postfix = postfix + "#" + digit
-			i = j - 1 // i 向前跨越一个整数，由于执行了一步多余的 j++，需要减 1
-		default:
-			// 操作符：遇到高优先级的运算符，不断弹出，直到遇见更低优先级运算符
+		char := expArr[i]
+		if char == "+" || char == "-" || char == "*" || char == "/" {
+			//运算符，遇到高优先级的运算符，不断弹出，直到遇见更低优先级运算符
 			for !stack.IsEmpty() {
 				top := stack.Top()
 				if top == "(" || isLower(top, char) {
 					break
 				}
-				postfix = postfix + "#" + top
+				postfixArr = append(postfixArr, top)
 				stack.Pop()
 			}
 			// 低优先级的运算符入栈
 			stack.Push(char)
+		} else if char == " " {
+			continue
+		} else {
+			// 数字
+			postfixArr = append(postfixArr, char)
 		}
 	}
 
 	// 栈不空则全部输出
 	for !stack.IsEmpty() {
-		postfix = postfix + "#" + stack.Pop()
+		postfixArr = append(postfixArr, stack.Pop())
 	}
 
-	return postfix
+	return postfixArr
 }
 
 //2、封装一个后缀表达式计算值的方法
-func calculate(postfix string) int {
+func calculate(postfixArray []string) int {
 	stack := model.ItemStack{}
-	postfix = strings.TrimSpace(postfix)
-	postfixArray := strings.Split(postfix, "#")
-	//fixLen := len(postfixArray)
-
-	//fmt.Println(len(postfixArray))
-
-	for i := 1; i < len(postfixArray); i++ {
+	for i := 0; i < len(postfixArray); i++ {
 		nextChar := postfixArray[i]
 		// 数字：直接压栈
 		_, err := strconv.Atoi(postfixArray[i])
@@ -130,8 +186,6 @@ func isLower(top string, newTop string) bool {
 		if newTop == "*" || newTop == "/" {
 			return true
 		}
-	case "(":
-		return true
 	}
 	return false
 }

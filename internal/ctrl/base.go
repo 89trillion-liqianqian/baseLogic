@@ -1,11 +1,11 @@
 package ctrl
 
 import (
+	"fmt"
 	"ginserver/internal/handler"
 	"ginserver/internal/myerr"
 	"github.com/gin-gonic/gin"
 	"strconv"
-	"strings"
 )
 
 // ping
@@ -24,19 +24,12 @@ func GetIntByStr(c *gin.Context) {
 		myerr.ResponseErr(c, msg)
 		return
 	}
-	if strings.Contains(str, "//") || strings.Contains(str, "**") || strings.Contains(str, "++") || strings.Contains(str, "--") {
-		msg := "参数不正确"
+	reData, err := handler.GetIntByStrHandler(str)
+	if err != nil {
+		msg := fmt.Sprintf("参数不正确:%s", err)
 		myerr.ResponseErr(c, msg)
 		return
 	}
-	//
-	isOk := CheckStr(str)
-	if !isOk {
-		msg := "参数不正确"
-		myerr.ResponseErr(c, msg)
-		return
-	}
-	reData := handler.GetIntByStrHandler(str)
 	c.JSON(200, gin.H{
 		"code": 0,
 		"msg":  "字符串计算结果",
@@ -52,8 +45,12 @@ func CheckStr(str string) bool {
 	for k := 0; k < lenStr; k++ {
 		strV := string(strArr[k])
 		if strV == "+" || strV == "-" || strV == "*" || strV == "/" {
+			if k == 0 || k == lenStr {
+				return false
+			}
 			continue
 		}
+		// 数字间有空格
 		_, err := strconv.Atoi(strV)
 		if err != nil {
 			return false
